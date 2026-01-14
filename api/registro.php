@@ -67,6 +67,18 @@ try {
     ], 201);
     
 } catch (PDOException $e) {
-    jsonResponse(['error' => 'Erro ao realizar cadastro'], 500);
+    // Em desenvolvimento, mostrar detalhes do erro
+    $isDev = (env('APP_ENV', 'production') === 'development');
+    $errorMsg = $isDev ? $e->getMessage() : 'Erro ao realizar cadastro';
+    
+    error_log("Erro no registro: " . $e->getMessage());
+    jsonResponse(['error' => $errorMsg], 500);
+} catch (Exception $e) {
+    // Capturar outros erros
+    $isDev = (env('APP_ENV', 'production') === 'development');
+    $errorMsg = $isDev ? $e->getMessage() : 'Erro ao realizar cadastro';
+    
+    error_log("Erro no registro: " . $e->getMessage());
+    jsonResponse(['error' => $errorMsg], 500);
 }
 ?>
