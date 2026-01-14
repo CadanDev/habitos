@@ -1,3 +1,6 @@
+<?php
+require_once 'config/config.php';
+?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -48,7 +51,7 @@
     
     <script>
         // Configuração da API baseada no ambiente
-        const API_BASE_URL = window.location.origin + '/api';
+        const API_BASE_URL = '<?php echo env('BASE_URL', 'http://localhost'); ?>/api';
     </script>
     <script src="assets/js/app.js"></script>
     <script>
