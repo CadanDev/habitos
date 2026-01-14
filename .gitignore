@@ -1,0 +1,10 @@
+# Arquivo de configuração com dados sensíveis
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
