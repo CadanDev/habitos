@@ -1,5 +1,5 @@
-// Configuração da API
-const API_BASE_URL = window.location.origin + '/api';
+// Configuração da API - definida no dashboard.php via env
+// const API_BASE_URL já está disponível globalmente
 
 // Estado da aplicação
 const AppState = {
@@ -205,6 +205,26 @@ const registros = {
                     notas: notas
                 })
             });
+            
+            if (window.character) {
+                const habito = AppState.habitos.find(h => h.id === habitoId);
+                
+                if (habito) {
+                    if (concluido) {
+                        window.character.celebrateHabit(habito.nome);
+                        
+                        // Verificar sequência
+                        if (response.sequencia && response.sequencia >= 3) {
+                            setTimeout(() => {
+                                window.character.celebrateStreak(response.sequencia);
+                            }, 3000);
+                        }
+                    } else {
+                        // Desmarcar - descelebrar
+                        window.character.uncelebrateHabit(habito.nome);
+                    }
+                }
+            }
             
             return response;
         } catch (error) {

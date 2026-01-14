@@ -25,19 +25,19 @@ requireLogin();
         <!-- Estatísticas -->
         <div class="grid grid-4 mb-20" id="statsContainer">
             <div class="stat-card">
-                <div class="stat-label">Total de Hábitos</div>
+                <div class="stat-label">➕ Total de Hábitos</div>
                 <div class="stat-value" id="totalHabitos">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Concluídos Hoje</div>
+                <div class="stat-label">✅ Concluídos Hoje</div>
                 <div class="stat-value" id="habitosHoje">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Melhor Sequência</div>
+                <div class="stat-label">🔥 Melhor Sequência</div>
                 <div class="stat-value" id="melhorSequencia">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Taxa Semanal</div>
+                <div class="stat-label">📈 Taxa Semanal</div>
                 <div class="stat-value" id="taxaSemanal">0%</div>
             </div>
         </div>
@@ -210,6 +210,12 @@ requireLogin();
         </div>
     </div>
     
+    <link rel="stylesheet" href="assets/css/character.css">
+    <script>
+        // Configuração da API baseada no ambiente
+        const API_BASE_URL = '<?php echo env('BASE_URL', 'http://localhost'); ?>/api';
+    </script>
+    <script src="assets/js/character.js"></script>
     <script src="assets/js/app.js"></script>
     <script>
         let modalHabito;
@@ -292,7 +298,7 @@ requireLogin();
                     <div class="habit-actions">
                         <button 
                             class="checkbox-btn ${concluido ? 'checked' : ''}" 
-                            onclick="marcarHabito(${habito.id}, this)"
+                            onclick="marcarHabito(${habito.id}, this, '${habito.nome}')"
                             title="${concluido ? 'Marcar como não concluído' : 'Marcar como concluído'}"
                         >
                             ${concluido ? '✓' : ''}
@@ -326,7 +332,7 @@ requireLogin();
         }
         
         // Marcar/desmarcar hábito
-        async function marcarHabito(habitoId, btn) {
+        async function marcarHabito(habitoId, btn, habitName) {
             const estavaConcluido = btn.classList.contains('checked');
             
             try {
