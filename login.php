@@ -46,6 +46,10 @@
         </div>
     </div>
     
+    <script>
+        // Configuração da API baseada no ambiente
+        const API_BASE_URL = window.location.origin + '/api';
+    </script>
     <script src="assets/js/app.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
