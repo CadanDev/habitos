@@ -1,23 +1,62 @@
-# Sistema de Migrações
+# 🗄️ Migrações de Banco de Dados
 
-Sistema simples de migrações de banco de dados usando arquivos SQL.
+## 📋 Estrutura
 
-## Como usar
+Cada migração cria ou modifica **UMA TABELA**. Isso torna mais fácil entender o que cada migration faz e facilita o rastreamento.
 
-### Executar migrações pendentes
-```bash
-php database/migrate.php
-# ou
-php database/migrate.php run
+## 📜 Migrations Atuais
+
+| # | Nome | Tabela | Descrição |
+|---|------|--------|-----------|
+| 001 | create_initial_tables | `usuarios` | Tabela principal de usuários com todas as colunas |
+| 002 | add_user_preferences | `habitos` | Tabela de hábitos |
+| 003 | add_habit_alerts | `registros` | Tabela de registros diários de hábitos |
+| 004 | add_tts_preferences | `alertas` | Tabela de alertas para hábitos |
+| 005 | add_rest_time_to_alerts | `veiculos` | Tabela de veículos |
+| 006 | add_alert_messages | `abastecimentos` | Tabela de abastecimentos de veículos |
+| 007 | add_tts_provider | `manutencoes` | Tabela de manutenções de veículos |
+| 008 | create_vehicle_management | `user_preferences` | Tabela de preferências do usuário |
+| 009 | add_ultimo_acesso | `audit_logs` | Tabela de logs de auditoria |
+
+## 🚀 Como Usar
+
+### Ver Status
+```
+run-migrations.php?action=status
+```
+Mostra quais migrações foram executadas e quais estão pendentes.
+
+### Executar Migrações
+```
+run-migrations.php?action=run
+```
+Executa todas as migrações pendentes em ordem.
+
+### Resetar Migrações (Fresh)
+```
+run-migrations.php?action=fresh
+```
+⚠️ **Limpa apenas o histórico** - não deleta os dados do banco!
+
+Útil quando você quer reexecutar as migrações sem perder dados.
+
+## 🔒 Segurança
+
+Em produção, forneça a chave:
+```
+run-migrations.php?action=run&key=SUA_CHAVE_SECRETA
 ```
 
-### Ver status das migrações
-```bash
-php database/migrate.php status
+Configure a chave no `.env`:
+```
+ADMIN_KEY=sua_chave_muito_segura_aqui
 ```
 
-## Criar nova migração
+## 📝 Notas
 
+- Sem dados importantes? Use `fresh` para resetar e reexecutar
+- Cada migration é independente e responsável por uma tabela
+- O sistema rastrea migrações executadas na tabela `migrations`
 1. Crie um arquivo SQL na pasta `database/migrations`
 2. Use o formato: `###_descricao.sql` (ex: `002_add_column_avatar.sql`)
 3. Os arquivos são executados em ordem alfabética

@@ -181,6 +181,67 @@ class MigrationWebRunner {
         
         return $this->output;
     }
+
+    public function fresh() {
+        $this->log('=== RESETAR BANCO DE DADOS (FRESH) ===', 'warning');
+        $this->log('⚠️ Deletando todas as tabelas...', 'warning');
+        
+        try {
+            // Desabilitar verificação de chaves estrangeiras
+            $this->conn->exec("SET FOREIGN_KEY_CHECKS=0");
+            
+            // Obter todas as tabelas do banco atual
+            $stmt = $this->conn->query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()");
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // Deletar todas as tabelas
+            foreach ($tables as $table) {
+                $this->conn->exec("DROP TABLE IF EXISTS `$table`");
+                $this->log("✓ Deletada tabela: $table", 'warning');
+            }
+            
+            // Reabilitar verificação de chaves estrangeiras
+            $this->conn->exec("SET FOREIGN_KEY_CHECKS=1");
+            
+            $this->log('✓ Banco de dados limpo com sucesso', 'success');
+            $this->log('', 'info');
+            
+            // Recriar tabela de migrações
+            $this->log('Recriando tabela de migrações...', 'info');
+            $this->ensureMigrationsTable();
+            
+            $this->log('', 'info');
+            $this->log('Agora executando todas as migrações...', 'info');
+            $this->log('', 'info');
+            
+            // Executar todas as migrações
+            $available = $this->getMigrationFiles();
+            $success = 0;
+            $failed = 0;
+            
+            foreach ($available as $migration) {
+                if ($this->executeMigration($migration)) {
+                    $success++;
+                } else {
+                    $failed++;
+                }
+            }
+            
+            $this->log('', 'info');
+            $this->log('=== RESULTADO FRESH ===', 'info');
+            $this->log("✓ Sucesso: $success migrações executadas", 'success');
+            if ($failed > 0) {
+                $this->log("✗ Falhas: $failed", 'error');
+            }
+            $this->log('✓ Banco de dados resetado com sucesso do zero!', 'success');
+            
+            return $this->output;
+        } catch (PDOException $e) {
+            $this->log('✗ Erro ao resetar banco de dados: ' . $e->getMessage(), 'error');
+            logger()->error('Erro ao fazer fresh do banco', ['error' => $e->getMessage()]);
+            return $this->output;
+        }
+    }
 }
 
 // Processar requisição
@@ -199,6 +260,8 @@ try {
     
     if ($action === 'run') {
         $output = $runner->run();
+    } elseif ($action === 'fresh') {
+        $output = $runner->fresh();
     } else {
         $output = $runner->status();
     }
@@ -324,6 +387,9 @@ try {
             <a href="?action=run<?php echo $keyParam; ?>" class="btn-migrate btn-primary">
                 ▶️ Executar Migrações
             </a>
+            <button onclick="if(confirm('⚠️ ATENÇÃO CRÍTICA!\n\nIsto vai:\n• Deletar TODAS as tabelas\n• Limpar TODOS os dados\n• Executar as migrações do zero\n\nVocê tem certeza?')) { if(confirm('🔥 CONFIRMAÇÃO FINAL\n\nEsta ação é irreversível!\n\nTem certeza absoluta?')) { window.location.href='?action=fresh<?php echo $keyParam; ?>'; } }" class="btn-migrate btn-secondary" style="background: #cc3300; border: 1px solid #994400; color: white; font-weight: bold;">
+                🔥 Fresh (Resetar Tudo)
+            </button>
         </div>
         
         <div class="migration-output">

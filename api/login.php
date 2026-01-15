@@ -26,9 +26,14 @@ try {
     $usuario = $stmt->fetch();
     
     if ($usuario && password_verify($senha, $usuario['senha'])) {
-        // Atualizar último acesso
-        $updateStmt = $conn->prepare("UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = ?");
-        $updateStmt->execute([$usuario['id']]);
+        // Atualizar último acesso (se a coluna existir)
+        try {
+            $updateStmt = $conn->prepare("UPDATE usuarios SET ultimo_acesso = NOW() WHERE id = ?");
+            $updateStmt->execute([$usuario['id']]);
+        } catch (PDOException $e) {
+            // Coluna pode não existir em alguns ambientes
+            logger()->warning('Coluna ultimo_acesso não encontrada', ['error' => $e->getMessage()]);
+        }
         
         // Criar sessão
         $_SESSION['user_id'] = $usuario['id'];
