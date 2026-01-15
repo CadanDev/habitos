@@ -55,6 +55,49 @@ requireLogin();
                 <!-- Hábitos serão carregados aqui -->
             </div>
         </div>
+
+        <!-- Seção de Veículos -->
+        <div style="margin-top: 40px;">
+			<div class="w-100 d-flex flex-row justify-between">
+				<h2 style="margin-bottom: 20px; color: var(--text-primary); font-size: 24px; font-weight: 600;">🚗 Meus Veículos</h2>
+				<div class="w-20">
+					<input type="date" id="filter-date-veiculos" name="filter-date-veiculos" class="form-input" />
+				</div>
+			</div>
+            
+            <!-- Estatísticas de Veículos -->
+            <div class="grid grid-4 mb-20" id="veiculosStatsContainer">
+                <div class="stat-card">
+                    <div class="stat-label">🚗 Total de Veículos</div>
+                    <div class="stat-value" id="totalVeiculos">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">⛽ Total Gasto (Combustível)</div>
+                    <div class="stat-value" id="totalGastoCombustivel">R$ 0,00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">🔧 Total Gasto (Manutenção)</div>
+                    <div class="stat-value" id="totalGastoManutencao">R$ 0,00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">💰 Total Investido</div>
+                    <div class="stat-value" id="totalInvestido">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Lista de Veículos -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Meus Veículos</h3>
+                    <button onclick="abrirModalNovoVeiculo()" class="btn btn-primary">
+                        + Novo Veículo
+                    </button>
+                </div>
+                <div id="veiculosLista" class="col">
+                    <!-- Veículos serão carregados aqui -->
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Modal Novo/Editar Hábito -->
@@ -258,6 +301,8 @@ requireLogin();
             if (window.userPrefs) {
                 await userPrefs.load();
             }
+            // Carregar dados de veículos
+            await carregarVeiculos();
         });
         
         // Carregar dados
@@ -623,6 +668,315 @@ requireLogin();
                 const msg = document.getElementById('habitoAlertaMensagem').value || 'Hora do seu hábito!';
                 alerts.speakMessage(msg);
             });
+        }
+
+        // ========== VEÍCULOS ==========
+        let modalNovoVeiculo;
+        let veiculoEmEdicao = null;
+
+        // Carregar veículos e suas estatísticas
+        async function carregarVeiculos() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/veiculos.php?action=listar`);
+                const result = await response.json();
+                
+                if (result.sucesso) {
+                    exibirVeiculos(result.dados);
+                    await carregarEstatisticasVeiculos(result.dados);
+                }
+            } catch (error) {
+                console.error('Erro ao carregar veículos:', error);
+            }
+        }
+
+        // Carregar estatísticas de veículos
+        async function carregarEstatisticasVeiculos(veiculos) {
+            let totalGastoCombustivel = 0;
+            let totalGastoManutencao = 0;
+
+            for (const veiculo of veiculos) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/veiculos.php?action=detalhes&id=${veiculo.id}`);
+                    const result = await response.json();
+                    
+                    if (result.sucesso) {
+                        totalGastoCombustivel += parseFloat(result.abastecimentos.stats.total_gasto_abastecimentos || 0);
+                        totalGastoManutencao += parseFloat(result.manutencoes.stats.total_gasto_manutencoes || 0);
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar detalhes do veículo:', error);
+                }
+            }
+
+            const totalInvestido = totalGastoCombustivel + totalGastoManutencao;
+
+            document.getElementById('totalVeiculos').textContent = veiculos.length;
+            document.getElementById('totalGastoCombustivel').textContent = `R$ ${totalGastoCombustivel.toFixed(2).replace('.', ',')}`;
+            document.getElementById('totalGastoManutencao').textContent = `R$ ${totalGastoManutencao.toFixed(2).replace('.', ',')}`;
+            document.getElementById('totalInvestido').textContent = `R$ ${totalInvestido.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Exibir lista de veículos
+        async function exibirVeiculos(veiculos) {
+            const container = document.getElementById('veiculosLista');
+            
+            if (veiculos.length === 0) {
+                container.innerHTML = '<p class="row" style="text-align: center; color: var(--gray-500);">Nenhum veículo cadastrado. Cadastre seu primeiro veículo!</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            for (const veiculo of veiculos) {
+                const veiculoEl = document.createElement('div');
+                veiculoEl.className = 'row';
+                veiculoEl.style.cssText = 'padding: 15px; border: 1px solid var(--gray-200); border-radius: 8px; margin-bottom: 10px; background: var(--bg-secondary); align-items: center; gap: 15px;';
+                
+                let stats = { abastecimentos: { stats: {} }, manutencoes: { stats: {} } };
+                try {
+                    const response = await fetch(`${API_BASE_URL}/veiculos.php?action=detalhes&id=${veiculo.id}`);
+                    const result = await response.json();
+                    if (result.sucesso) {
+                        stats = result;
+                    }
+                } catch (error) {
+                    console.error('Erro ao carregar detalhes:', error);
+                }
+
+                const totalAbastecimentos = stats.abastecimentos.stats.total_abastecimentos || 0;
+                const totalManutencoes = stats.manutencoes.stats.total_manutencoes || 0;
+                const gastoAbastecimentos = parseFloat(stats.abastecimentos.stats.total_gasto_abastecimentos || 0);
+                const gastoManutencoes = parseFloat(stats.manutencoes.stats.total_gasto_manutencoes || 0);
+                const custoTotal = gastoAbastecimentos + gastoManutencoes;
+
+                veiculoEl.innerHTML = `
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 16px; color: var(--text-primary); margin-bottom: 8px;">
+                            🚗 ${veiculo.modelo} ${veiculo.marca} ${veiculo.ano}
+                            ${veiculo.apelido ? `<span style="color: var(--gray-500); font-size: 14px;">(${veiculo.apelido})</span>` : ''}
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; font-size: 13px; color: var(--gray-600);">
+                            <div>📍 <strong>${veiculo.quilometragem.toLocaleString('pt-BR')}</strong> km</div>
+                            <div>⛽ <strong>${totalAbastecimentos}</strong> abastecimentos</div>
+                            <div>🔧 <strong>${totalManutencoes}</strong> manutenções</div>
+                            <div>💰 <strong>R$ ${custoTotal.toFixed(2).replace('.', ',')}</strong> investido</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button 
+                            class="btn btn-primary" 
+                            onclick="abrirVeiculoDetalhes(${veiculo.id})"
+                            title="Ver detalhes"
+                        >
+                            👁️ Ver
+                        </button>
+                        <button 
+                            class="btn btn-outline" 
+                            onclick="abrirModalAbastecimento(${veiculo.id})"
+                            title="Abastecer"
+                        >
+                            ⛽ Abastecer
+                        </button>
+                        <button 
+                            class="btn btn-outline" 
+                            onclick="abrirModalManutencao(${veiculo.id})"
+                            title="Registrar manutenção"
+                        >
+                            🔧 Manutenção
+                        </button>
+                        <button 
+                            class="btn btn-outline" 
+                            onclick="editarVeiculo(${veiculo.id})"
+                            title="Editar"
+                        >
+                            ✏️
+                        </button>
+                        <button 
+                            class="btn btn-danger" 
+                            onclick="deletarVeiculo(${veiculo.id})"
+                            title="Excluir"
+                        >
+                            🗑️
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(veiculoEl);
+            }
+        }
+
+        // Abrir detalhes do veículo
+        function abrirVeiculoDetalhes(veiculoId) {
+            const veiculo = AppState.veiculos?.find(v => v.id == veiculoId);
+            if (window.character && veiculo) {
+                window.character.speak(`Vamos ver os detalhes do ${veiculo.apelido || veiculo.modelo}! 📋`, 'happy', 3000);
+            }
+            alert(`Funcionalidade de detalhes em desenvolvimento. ID: ${veiculoId}`);
+        }
+
+        // Abrir modal novo veículo
+        function abrirModalNovoVeiculo() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'modalNovoVeiculo';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Novo Veículo</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <form id="formNovoVeiculo">
+                        <div class="form-group">
+                            <label class="form-label" for="veiMarca">Marca *</label>
+                            <input type="text" id="veiMarca" class="form-input" required placeholder="Ex: Toyota">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="veiModelo">Modelo *</label>
+                            <input type="text" id="veiModelo" class="form-input" required placeholder="Ex: Corolla">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="veiAno">Ano *</label>
+                            <input type="number" id="veiAno" class="form-input" required placeholder="Ex: 2022" min="1900" max="2099">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="veiCor">Cor</label>
+                            <input type="text" id="veiCor" class="form-input" placeholder="Ex: Branco">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="veiApelido">Apelido</label>
+                            <input type="text" id="veiApelido" class="form-input" placeholder="Ex: Meu Carro">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="veiQuilometragem">Quilometragem Atual</label>
+                            <input type="number" id="veiQuilometragem" class="form-input" placeholder="Ex: 50000" min="0">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+                            <button type="button" onclick="fecharModalVeiculo()" class="btn btn-outline">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modalNovoVeiculo = new Modal('modalNovoVeiculo');
+            modalNovoVeiculo.open();
+
+            document.getElementById('formNovoVeiculo').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await salvarVeiculo();
+            });
+        }
+
+        // Salvar novo veículo
+        async function salvarVeiculo() {
+            const dados = {
+                marca: document.getElementById('veiMarca').value,
+                modelo: document.getElementById('veiModelo').value,
+                ano: parseInt(document.getElementById('veiAno').value),
+                cor: document.getElementById('veiCor').value || null,
+                apelido: document.getElementById('veiApelido').value || null,
+                quilometragem: parseInt(document.getElementById('veiQuilometragem').value) || 0,
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/veiculos.php?action=criar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+
+                const result = await response.json();
+                if (result.sucesso) {
+                    if (window.character) {
+                        window.character.speak(`Novo veículo ${dados.modelo} cadastrado! 🚗✨`, 'excited', 3500);
+                    }
+                    fecharModalVeiculo();
+                    await carregarVeiculos();
+                } else {
+                    if (window.character) {
+                        window.character.speak('Ops! Algo deu errado ao cadastrar. 😟', 'thinking', 2500);
+                    }
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao salvar veículo:', error);
+                if (window.character) {
+                    window.character.speak('Erro ao salvar o veículo. 😞', 'tired', 2500);
+                }
+                alert('Erro ao salvar veículo');
+            }
+        }
+
+        // Editar veículo
+        function editarVeiculo(veiculoId) {
+            const veiculo = AppState.veiculos?.find(v => v.id == veiculoId);
+            if (window.character && veiculo) {
+                window.character.speak(`Vamos editar as informações do ${veiculo.apelido || veiculo.modelo}! ✏️`, 'happy', 3000);
+            }
+            alert(`Funcionalidade de edição em desenvolvimento. ID: ${veiculoId}`);
+        }
+
+        // Deletar veículo
+        async function deletarVeiculo(veiculoId) {
+            const veiculo = AppState.veiculos?.find(v => v.id == veiculoId);
+            const nomVeiculo = veiculo ? veiculo.apelido || veiculo.modelo : 'veículo';
+            
+            if (!confirm('Tem certeza que deseja deletar este veículo? Todos os registros de abastecimento e manutenção serão perdidos.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/veiculos.php?action=deletar&id=${veiculoId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (result.sucesso) {
+                    if (window.character) {
+                        window.character.speak(`${nomVeiculo} foi removido da garagem. 😢`, 'tired', 3500);
+                    }
+                    await carregarVeiculos();
+                } else {
+                    if (window.character) {
+                        window.character.speak('Não consegui deletar o veículo. 😟', 'thinking', 2500);
+                    }
+                    alert('Erro: ' + result.erro);
+                }
+            } catch (error) {
+                console.error('Erro ao deletar veículo:', error);
+                if (window.character) {
+                    window.character.speak('Erro ao deletar o veículo! 😞', 'tired', 2500);
+                }
+                alert('Erro ao deletar veículo');
+            }
+        }
+
+        // Abrir modal abastecimento
+        function abrirModalAbastecimento(veiculoId) {
+            const veiculo = AppState.veiculos?.find(v => v.id == veiculoId);
+            if (window.character && veiculo) {
+                window.character.speak(`Vamos registrar um abastecimento para o ${veiculo.apelido || veiculo.modelo}! ⛽`, 'happy', 3000);
+            }
+            alert(`Funcionalidade de abastecimento em desenvolvimento. ID: ${veiculoId}`);
+        }
+
+        // Abrir modal manutenção
+        function abrirModalManutencao(veiculoId) {
+            const veiculo = AppState.veiculos?.find(v => v.id == veiculoId);
+            if (window.character && veiculo) {
+                window.character.speak(`Vamos registrar uma manutenção para o ${veiculo.apelido || veiculo.modelo}! 🔧`, 'thinking', 3000);
+            }
+            alert(`Funcionalidade de manutenção em desenvolvimento. ID: ${veiculoId}`);
+        }
+
+        // Fechar modal veículo
+        function fecharModalVeiculo() {
+            if (modalNovoVeiculo) {
+                modalNovoVeiculo.close();
+                const modal = document.getElementById('modalNovoVeiculo');
+                if (modal) modal.remove();
+            }
         }
     </script>
 </body>

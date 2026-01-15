@@ -4,6 +4,7 @@
 @import url('./partitions/display.css');
 @import url('./partitions/position.css');
 @import url('./partitions/opacity.css');
+@import url('./partitions/inputs.css');
 
 :root {
     --primary: #3b82f6;
