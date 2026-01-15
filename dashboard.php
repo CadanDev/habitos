@@ -21,6 +21,13 @@ requireLogin();
             </div>
         </div>
     </header>
+
+    <div class="page-ad page-ad-left" aria-label="Espaço publicitário lateral esquerdo">
+        <div class="ad-placeholder">Espaço reservado para anúncio 160x600</div>
+    </div>
+    <div class="page-ad page-ad-right" aria-label="Espaço publicitário lateral direito">
+        <div class="ad-placeholder">Espaço reservado para anúncio 160x600</div>
+    </div>
     
     <div class="container">
         <!-- Estatísticas -->
@@ -102,7 +109,8 @@ requireLogin();
     
     <!-- Modal Novo/Editar Hábito -->
     <div id="modalHabito" class="modal">
-        <div class="modal-content">
+        <div class="modal-shell modal-with-ad">
+            <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="modalTitulo">Novo Hábito</h3>
                 <button class="modal-close">&times;</button>
@@ -279,6 +287,10 @@ requireLogin();
                     </button>
                 </div>
             </form>
+            </div>
+            <aside class="modal-ad-slot ad-slot-vertical" aria-label="Espaço publicitário">
+                <div class="ad-placeholder">Espaço reservado para anúncio 300x600</div>
+            </aside>
         </div>
     </div>
     
@@ -820,41 +832,46 @@ requireLogin();
             modal.className = 'modal';
             modal.id = 'modalNovoVeiculo';
             modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title">Novo Veículo</h3>
-                        <button class="modal-close">&times;</button>
+                <div class="modal-shell modal-with-ad">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 class="modal-title">Novo Veículo</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <form id="formNovoVeiculo">
+                            <div class="form-group">
+                                <label class="form-label" for="veiMarca">Marca *</label>
+                                <input type="text" id="veiMarca" class="form-input" required placeholder="Ex: Toyota">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="veiModelo">Modelo *</label>
+                                <input type="text" id="veiModelo" class="form-input" required placeholder="Ex: Corolla">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="veiAno">Ano *</label>
+                                <input type="number" id="veiAno" class="form-input" required placeholder="Ex: 2022" min="1900" max="2099">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="veiCor">Cor</label>
+                                <input type="text" id="veiCor" class="form-input" placeholder="Ex: Branco">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="veiApelido">Apelido</label>
+                                <input type="text" id="veiApelido" class="form-input" placeholder="Ex: Meu Carro">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="veiQuilometragem">Quilometragem Atual</label>
+                                <input type="number" id="veiQuilometragem" class="form-input" placeholder="Ex: 50000" min="0">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
+                                <button type="button" onclick="fecharModalVeiculo()" class="btn btn-outline">Cancelar</button>
+                            </div>
+                        </form>
                     </div>
-                    <form id="formNovoVeiculo">
-                        <div class="form-group">
-                            <label class="form-label" for="veiMarca">Marca *</label>
-                            <input type="text" id="veiMarca" class="form-input" required placeholder="Ex: Toyota">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="veiModelo">Modelo *</label>
-                            <input type="text" id="veiModelo" class="form-input" required placeholder="Ex: Corolla">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="veiAno">Ano *</label>
-                            <input type="number" id="veiAno" class="form-input" required placeholder="Ex: 2022" min="1900" max="2099">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="veiCor">Cor</label>
-                            <input type="text" id="veiCor" class="form-input" placeholder="Ex: Branco">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="veiApelido">Apelido</label>
-                            <input type="text" id="veiApelido" class="form-input" placeholder="Ex: Meu Carro">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="veiQuilometragem">Quilometragem Atual</label>
-                            <input type="number" id="veiQuilometragem" class="form-input" placeholder="Ex: 50000" min="0">
-                        </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar</button>
-                            <button type="button" onclick="fecharModalVeiculo()" class="btn btn-outline">Cancelar</button>
-                        </div>
-                    </form>
+                    <aside class="modal-ad-slot ad-slot-vertical" aria-label="Espaço publicitário">
+                        <div class="ad-placeholder">Espaço reservado para anúncio 300x600</div>
+                    </aside>
                 </div>
             `;
 
