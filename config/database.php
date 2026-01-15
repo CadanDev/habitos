@@ -31,16 +31,42 @@ class Database {
         $this->conn = null;
         
         try {
+            // Construir DSN
+            $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+            
+            // Tentar conexão com timeout
             $this->conn = new PDO(
-                "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET,
+                $dsn,
                 DB_USER,
-                DB_PASS
+                DB_PASS,
+                [
+                    PDO::ATTR_TIMEOUT => 5,
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+                ]
             );
+            
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+            
         } catch(PDOException $e) {
-            // Lançar exceção ao invés de fazer echo
-            throw new PDOException("Erro de conexão com o banco de dados: " . $e->getMessage());
+            // Log detalhado do erro
+            $errorMsg = "Erro de conexão com o banco de dados: " . $e->getMessage();
+            
+            // Log em arquivo
+            if (function_exists('logger')) {
+                logger()->error('Falha ao conectar com banco de dados', [
+                    'host' => DB_HOST,
+                    'port' => DB_PORT,
+                    'database' => DB_NAME,
+                    'user' => DB_USER,
+                    'error' => $e->getMessage(),
+                    'code' => $e->getCode()
+                ]);
+            }
+            
+            throw new PDOException($errorMsg);
         }
         
         return $this->conn;
