@@ -28,7 +28,10 @@ try {
                        a.dias AS alerta_dias,
                        a.intervalo_minutos AS alerta_intervalo_minutos,
                       a.descanso_segundos AS alerta_descanso_segundos,
-                      a.mensagem AS alerta_mensagem
+                      a.mensagem_alerta AS alerta_mensagem,
+                      a.mensagem_descanso AS alerta_mensagem_descanso,
+                      a.mensagem_fim_descanso AS alerta_mensagem_fim_descanso,
+                      a.estado_atual AS alerta_estado_atual
                 FROM habitos h
                 LEFT JOIN registros r ON h.id = r.habito_id AND r.concluido = 1
                 LEFT JOIN alertas a ON a.habito_id = h.id
@@ -74,13 +77,15 @@ try {
             $alertaIntervalo = isset($data['alerta_intervalo_minutos']) ? intval($data['alerta_intervalo_minutos']) : null;
             $alertaDescanso = isset($data['alerta_descanso_segundos']) ? intval($data['alerta_descanso_segundos']) : null;
             $alertaMensagem = sanitizeInput($data['alerta_mensagem'] ?? null);
+            $alertaMensagemDescanso = sanitizeInput($data['alerta_mensagem_descanso'] ?? null);
+            $alertaMensagemFimDescanso = sanitizeInput($data['alerta_mensagem_fim_descanso'] ?? null);
 
             if ($alertaAtivo !== null && !empty($alertaTipo)) {
                 $stmtAlerta = $conn->prepare("
-                    INSERT INTO alertas (habito_id, ativo, tipo, hora, dias, intervalo_minutos, descanso_segundos, mensagem)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO alertas (habito_id, ativo, tipo, hora, dias, intervalo_minutos, descanso_segundos, mensagem_alerta, mensagem_descanso, mensagem_fim_descanso)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmtAlerta->execute([$novoHabitoId, $alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem]);
+                $stmtAlerta->execute([$novoHabitoId, $alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem, $alertaMensagemDescanso, $alertaMensagemFimDescanso]);
             }
             
             jsonResponse([
@@ -128,6 +133,8 @@ try {
             $alertaIntervalo = isset($data['alerta_intervalo_minutos']) ? intval($data['alerta_intervalo_minutos']) : null;
             $alertaDescanso = isset($data['alerta_descanso_segundos']) ? intval($data['alerta_descanso_segundos']) : null;
             $alertaMensagem = sanitizeInput($data['alerta_mensagem'] ?? null);
+            $alertaMensagemDescanso = sanitizeInput($data['alerta_mensagem_descanso'] ?? null);
+            $alertaMensagemFimDescanso = sanitizeInput($data['alerta_mensagem_fim_descanso'] ?? null);
 
             if ($alertaAtivo !== null && !empty($alertaTipo)) {
                 // Verifica se j� existe registro de alerta para o h�bito
@@ -138,16 +145,16 @@ try {
                 if ($existe) {
                     $stmtAlerta = $conn->prepare("
                         UPDATE alertas
-                        SET ativo = ?, tipo = ?, hora = ?, dias = ?, intervalo_minutos = ?, descanso_segundos = ?, mensagem = ?
+                        SET ativo = ?, tipo = ?, hora = ?, dias = ?, intervalo_minutos = ?, descanso_segundos = ?, mensagem_alerta = ?, mensagem_descanso = ?, mensagem_fim_descanso = ?
                         WHERE habito_id = ?
                     ");
-                    $stmtAlerta->execute([$alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem, $habitoId]);
+                    $stmtAlerta->execute([$alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem, $alertaMensagemDescanso, $alertaMensagemFimDescanso, $habitoId]);
                 } else {
                     $stmtAlerta = $conn->prepare("
-                        INSERT INTO alertas (habito_id, ativo, tipo, hora, dias, intervalo_minutos, descanso_segundos, mensagem)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO alertas (habito_id, ativo, tipo, hora, dias, intervalo_minutos, descanso_segundos, mensagem_alerta, mensagem_descanso, mensagem_fim_descanso)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ");
-                    $stmtAlerta->execute([$habitoId, $alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem]);
+                    $stmtAlerta->execute([$habitoId, $alertaAtivo ? 1 : 0, $alertaTipo, $alertaHora, $alertaDias, $alertaIntervalo, $alertaDescanso, $alertaMensagem, $alertaMensagemDescanso, $alertaMensagemFimDescanso]);
                 }
             }
             

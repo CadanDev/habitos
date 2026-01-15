@@ -350,7 +350,7 @@ class Character {
             const speed = parseFloat(localStorage.getItem('character_openai_speed') || '1.0');
             
             // Fazer requisição para o backend
-            const response = await fetch(window.location.origin + '/api/tts.php', {
+            const response = await fetch(window.API_BASE_URL + '/api/tts.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -497,7 +497,7 @@ class Character {
         // Verificar a cada 30 segundos
         setInterval(async () => {
             try {
-                const response = await fetch(`${window.location.origin}/api/habitos.php`);
+                const response = await fetch(`${window.API_BASE_URL}/api/habitos.php`);
                 const data = await response.json();
                 
                 if (data.success && data.habitos) {

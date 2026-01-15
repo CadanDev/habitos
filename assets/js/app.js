@@ -299,6 +299,7 @@ window.Modal = Modal;
 const alerts = {
     timers: {},
     initialized: false,
+    pendingRestStarts: {}, // Alertas aguardando trigger do usuário para iniciar descanso
     settings: {
         voice: null,
         volume: 1.0,
@@ -455,7 +456,7 @@ const alerts = {
     },
     notify(h, extraMsg = '') {
         const title = `Alerta: ${h.nome}`;
-        const body = h.alerta_mensagem || extraMsg || 'Hora do seu hábito!';
+        const body = extraMsg || h.alerta_mensagem || 'Hora do seu hábito!';
         // Notificação visual
         if ('Notification' in window && Notification.permission === 'granted') {
             try {
@@ -467,6 +468,8 @@ const alerts = {
             utils.showAlert(`${title} - ${body}`, 'info');
         }
         // TTS com configurações
+        this.speakMessage(body);
+    },
         this.speakMessage(body);
     },
     speakMessage(text) {
@@ -591,21 +594,23 @@ const alerts = {
                 const restId = setTimeout(() => {
                     this.removeTimerFromStorage(h.id);
                     this.notifyRestEnd(h);
+                    delete this.pendingRestStarts[h.id];
                     cycle(false);
                 }, waitTime);
                 this.setTimerMeta(h, restId, waitTime, 'rest', originalTotal);
+            } else if (currentPhase === 'waiting_rest_trigger') {
+                // Estava aguardando trigger, mantém estado
+                this.pendingRestStarts[h.id] = true;
             } else {
                 // Fase de intervalo normal
                 const intervalId = setTimeout(() => {
                     this.removeTimerFromStorage(h.id);
                     this.notify(h);
+                    
                     if (restMs > 0) {
-                        const restId = setTimeout(() => {
-                            this.removeTimerFromStorage(h.id);
-                            this.notifyRestEnd(h);
-                            cycle(false);
-                        }, restMs);
-                        this.setTimerMeta(h, restId, restMs, 'rest', restMs);
+                        // Requer trigger manual do usuário para iniciar descanso
+                        this.pendingRestStarts[h.id] = true;
+                        this.setTimerMeta(h, null, 0, 'waiting_rest_trigger', 0);
                     } else {
                         cycle(false);
                     }
@@ -616,8 +621,31 @@ const alerts = {
         
         cycle(true); // Primeira vez tenta restaurar
     },
+    startRest(habitoId) {
+        // Função para ser chamada pelo usuário para iniciar o descanso
+        const h = AppState.habitos.find(hab => hab.id === habitoId);
+        if (!h || !this.pendingRestStarts[habitoId]) return;
+        
+        delete this.pendingRestStarts[habitoId];
+        const rest = parseInt(h.alerta_descanso_segundos || 0, 10);
+        const restMs = rest * 1000;
+        
+        // Notificar início do descanso
+        const msgDescanso = h.alerta_mensagem_descanso || `Iniciando descanso de ${rest} segundos`;
+        this.notify(h, msgDescanso);
+        
+        // Iniciar timer de descanso
+        const restId = setTimeout(() => {
+            this.removeTimerFromStorage(h.id);
+            this.notifyRestEnd(h);
+            // Reiniciar ciclo
+            this.scheduleInterval(h);
+        }, restMs);
+        
+        this.setTimerMeta(h, restId, restMs, 'rest', restMs);
+    },
     notifyRestEnd(h) {
-        const message = `Descanso encerrado para: ${h.nome}. Retome o hábito.`;
+        const message = h.alerta_mensagem_fim_descanso || `Descanso encerrado para: ${h.nome}. Retome o hábito.`;
         this.notify(h, message);
     }
 };

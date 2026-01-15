@@ -172,6 +172,16 @@ requireLogin();
                         <label class="form-label" for="habitoAlertaMensagem">Mensagem do alerta (opcional)</label>
                         <input type="text" id="habitoAlertaMensagem" class="form-input" placeholder="Ex: Hora de praticar seu hábito!">
                     </div>
+                    <div id="alertaMensagensDescanso" style="display:none;">
+                        <div class="form-group">
+                            <label class="form-label" for="habitoAlertaMensagemDescanso">Mensagem ao iniciar descanso (opcional)</label>
+                            <input type="text" id="habitoAlertaMensagemDescanso" class="form-input" placeholder="Ex: Iniciando descanso de 20 segundos">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="habitoAlertaMensagemFimDescanso">Mensagem ao fim do descanso (opcional)</label>
+                            <input type="text" id="habitoAlertaMensagemFimDescanso" class="form-input" placeholder="Ex: Descanso finalizado, retome o hábito!">
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label class="form-label">Configurações de áudio (opcional)</label>
                         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -277,6 +287,7 @@ requireLogin();
                 habitoEl.style.borderLeftColor = habito.cor;
                 const alertaTexto = habito.alerta_ativo ? '🔔 alerta ativo' : `📊 ${habito.registros_semana}/${habito.meta_semanal} esta semana`;
                 const progressId = `progress-${habito.id}`;
+                const restBtnId = `rest-btn-${habito.id}`;
                 const progressBar = habito.alerta_ativo ? `
                     <div class="alert-progress" style="position:relative;height:6px;border-radius:999px;background: var(--gray-200);overflow:hidden;margin-top:10px;">
                         <div class="alert-progress-bar" id="${progressId}" style="height:100%;width:0%;background:${habito.cor};transition:width 0.4s ease;"></div>
@@ -296,6 +307,15 @@ requireLogin();
                         ${progressBar}
                     </div>
                     <div class="habit-actions">
+                        <button 
+                            id="${restBtnId}"
+                            class="btn btn-primary" 
+                            onclick="iniciarDescanso(${habito.id})"
+                            title="Iniciar descanso"
+                            style="display:none;"
+                        >
+                            ⏸️ Descansar
+                        </button>
                         <button 
                             class="checkbox-btn ${concluido ? 'checked' : ''}" 
                             onclick="marcarHabito(${habito.id}, this, '${habito.nome}')"
@@ -350,6 +370,37 @@ requireLogin();
             }
         }
         
+        // Iniciar descanso de um hábito
+        function iniciarDescanso(habitoId) {
+            if (window.alerts && typeof window.alerts.startRest === 'function') {
+                window.alerts.startRest(habitoId);
+                // Esconder o botão
+                const btn = document.getElementById(`rest-btn-${habitoId}`);
+                if (btn) btn.style.display = 'none';
+            }
+        }
+        
+        // Atualizar visibilidade dos botões de descanso
+        function atualizarBotoesDescanso() {
+            if (!window.alerts || !window.alerts.pendingRestStarts) return;
+            
+            Object.keys(window.alerts.pendingRestStarts).forEach(habitoId => {
+                const btn = document.getElementById(`rest-btn-${habitoId}`);
+                if (btn) btn.style.display = 'inline-block';
+            });
+            
+            // Esconder botões que não estão mais pendentes
+            AppState.habitos.forEach(h => {
+                if (!window.alerts.pendingRestStarts[h.id]) {
+                    const btn = document.getElementById(`rest-btn-${h.id}`);
+                    if (btn) btn.style.display = 'none';
+                }
+            });
+        }
+        
+        // Verificar botões periodicamente
+        setInterval(atualizarBotoesDescanso, 1000);
+        
         // Abrir modal novo hábito
         function abrirModalNovoHabito() {
             document.getElementById('modalTitulo').textContent = 'Novo Hábito';
@@ -393,8 +444,13 @@ requireLogin();
             // Intervalo
             document.getElementById('habitoAlertaIntervalo').value = habito.alerta_intervalo_minutos || 60;
             document.getElementById('habitoAlertaDescanso').value = habito.alerta_descanso_segundos || '';
-            // Mensagem
+            // Mensagens
             document.getElementById('habitoAlertaMensagem').value = habito.alerta_mensagem || '';
+            document.getElementById('habitoAlertaMensagemDescanso').value = habito.alerta_mensagem_descanso || '';
+            document.getElementById('habitoAlertaMensagemFimDescanso').value = habito.alerta_mensagem_fim_descanso || '';
+            // Mostrar campos de descanso se houver tempo de descanso
+            const descanso = habito.alerta_descanso_segundos;
+            document.getElementById('alertaMensagensDescanso').style.display = (descanso && parseInt(descanso) > 0) ? 'block' : 'none';
             
             modalHabito.open();
         }
@@ -435,6 +491,8 @@ requireLogin();
                 habitoData.alerta_ativo = true;
                 habitoData.alerta_tipo = tipo;
                 habitoData.alerta_mensagem = document.getElementById('habitoAlertaMensagem').value || null;
+                habitoData.alerta_mensagem_descanso = document.getElementById('habitoAlertaMensagemDescanso').value || null;
+                habitoData.alerta_mensagem_fim_descanso = document.getElementById('habitoAlertaMensagemFimDescanso').value || null;
                 if (tipo === 'dia') {
                     const diasSelecionados = Array.from(document.querySelectorAll('.alerta-dia:checked')).map(cb => cb.value).join(',');
                     habitoData.alerta_dias = diasSelecionados || null;
@@ -479,6 +537,10 @@ requireLogin();
         });
         document.getElementById('habitoAlertaTipo').addEventListener('change', (e) => {
             mostrarCamposAlerta(e.target.value);
+        });
+        document.getElementById('habitoAlertaDescanso').addEventListener('input', (e) => {
+            const descanso = e.target.value;
+            document.getElementById('alertaMensagensDescanso').style.display = (descanso && parseInt(descanso) > 0) ? 'block' : 'none';
         });
         function mostrarCamposAlerta(tipo) {
             document.getElementById('alertaDiaFields').style.display = tipo === 'dia' ? 'block' : 'none';
