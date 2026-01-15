@@ -37,7 +37,7 @@ try {
                 LEFT JOIN alertas a ON a.habito_id = h.id
                 WHERE h.usuario_id = ? AND h.ativo = 1
                 GROUP BY h.id
-                ORDER BY h.criado_em DESC
+                ORDER BY h.data_criacao DESC
             ");
             $stmt->execute([$userId]);
             $habitos = $stmt->fetchAll();
