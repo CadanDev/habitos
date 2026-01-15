@@ -1,5 +1,6 @@
 # Arquivo de configuração com dados sensíveis
 .env
+.env.prod
 
 # IDEs
 .vscode/

@@ -4,9 +4,30 @@
  * Útil para debug em produção
  */
 
-// Carregar variáveis de ambiente
-require_once __DIR__ . '/config/env.php';
-loadEnv();
+// Carregar configurações
+require_once __DIR__ . '/config/config.php';
+
+// Função para verificar chave de admin
+function verifyAdminKey($providedKey) {
+    $adminKey = env('ADMIN_KEY', '');
+    
+    if (empty($adminKey)) {
+        return false;
+    }
+    
+    // Comparação usando hash timing-safe
+    return hash_equals(hash('sha256', $adminKey), hash('sha256', $providedKey));
+}
+
+// Segurança - requer chave de admin em produção
+if (env('APP_ENV', 'production') !== 'development') {
+    $providedKey = $_GET['key'] ?? $_POST['key'] ?? '';
+    
+    if (!verifyAdminKey($providedKey) && !isLoggedIn()) {
+        http_response_code(403);
+        die('Acesso negado. Forneça a chave de administração via parâmetro ?key=SUA_CHAVE');
+    }
+}
 
 echo "=== TESTE DE CONEXÃO COM BANCO DE DADOS ===\n\n";
 

@@ -8,17 +8,25 @@
 
 require_once __DIR__ . '/config/config.php';
 
-// Segurança básica - apenas em desenvolvimento ou com autenticação
-if (env('APP_ENV', 'production') !== 'development') {
-    // Verificar se usuário está logado como admin ou usar senha temporária
-    session_start();
-    $securityKey = $_GET['key'] ?? '';
+// Função para verificar chave de admin
+function verifyAdminKey($providedKey) {
+    $adminKey = env('ADMIN_KEY', '');
     
-    // Use uma chave secreta temporária ou autenticação
-    // Exemplo: ?key=migracao123
-    if ($securityKey !== 'migracao123' && !isLoggedIn()) {
+    if (empty($adminKey)) {
+        return false;
+    }
+    
+    // Comparação usando hash timing-safe
+    return hash_equals(hash('sha256', $adminKey), hash('sha256', $providedKey));
+}
+
+// Segurança - requer chave de admin em produção
+if (env('APP_ENV', 'production') !== 'development') {
+    $providedKey = $_GET['key'] ?? $_POST['key'] ?? '';
+    
+    if (!verifyAdminKey($providedKey) && !isLoggedIn()) {
         http_response_code(403);
-        die('Acesso negado. Use ?key=migracao123');
+        die('Acesso negado. Forneça a chave de administração via parâmetro ?key=SUA_CHAVE');
     }
 }
 
@@ -301,10 +309,19 @@ try {
         </div>
         
         <div class="migration-buttons">
-            <a href="?action=status<?php echo (env('APP_ENV') !== 'development' ? '&key=migracao123' : ''); ?>" class="btn-migrate btn-secondary">
+            <?php 
+            $keyParam = '';
+            if (env('APP_ENV') !== 'development') {
+                $currentKey = $_GET['key'] ?? $_POST['key'] ?? '';
+                if (!empty($currentKey)) {
+                    $keyParam = '&key=' . urlencode($currentKey);
+                }
+            }
+            ?>
+            <a href="?action=status<?php echo $keyParam; ?>" class="btn-migrate btn-secondary">
                 📋 Ver Status
             </a>
-            <a href="?action=run<?php echo (env('APP_ENV') !== 'development' ? '&key=migracao123' : ''); ?>" class="btn-migrate btn-primary">
+            <a href="?action=run<?php echo $keyParam; ?>" class="btn-migrate btn-primary">
                 ▶️ Executar Migrações
             </a>
         </div>

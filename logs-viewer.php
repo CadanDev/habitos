@@ -6,10 +6,26 @@
 
 require_once 'config/config.php';
 
-// Apenas para desenvolvimento
+// Função para verificar chave de admin
+function verifyAdminKey($providedKey) {
+    $adminKey = env('ADMIN_KEY', '');
+    
+    if (empty($adminKey)) {
+        return false;
+    }
+    
+    // Comparação usando hash timing-safe
+    return hash_equals(hash('sha256', $adminKey), hash('sha256', $providedKey));
+}
+
+// Segurança - requer chave de admin em produção
 if (env('APP_ENV', 'production') !== 'development') {
-    http_response_code(403);
-    die('Acesso negado');
+    $providedKey = $_GET['key'] ?? $_POST['key'] ?? '';
+    
+    if (!verifyAdminKey($providedKey) && !isLoggedIn()) {
+        http_response_code(403);
+        die('Acesso negado. Forneça a chave de administração via parâmetro ?key=SUA_CHAVE');
+    }
 }
 
 $logType = $_GET['type'] ?? 'error';
@@ -124,11 +140,20 @@ if (!empty($logFiles)) {
     </div>
     
     <div class="log-controls">
-        <a href="?type=error" class="log-button <?php echo $logType === 'error' ? 'active' : ''; ?>">🔴 Erros</a>
-        <a href="?type=warning" class="log-button <?php echo $logType === 'warning' ? 'active' : ''; ?>">🟡 Avisos</a>
-        <a href="?type=info" class="log-button <?php echo $logType === 'info' ? 'active' : ''; ?>">ℹ️ Informações</a>
-        <a href="?type=debug" class="log-button <?php echo $logType === 'debug' ? 'active' : ''; ?>">🐛 Debug</a>
-        <a href="?type=application" class="log-button <?php echo $logType === 'application' ? 'active' : ''; ?>">📄 Geral</a>
+        <?php 
+        $keyParam = '';
+        if (env('APP_ENV') !== 'development') {
+            $currentKey = $_GET['key'] ?? $_POST['key'] ?? '';
+            if (!empty($currentKey)) {
+                $keyParam = '&key=' . urlencode($currentKey);
+            }
+        }
+        ?>
+        <a href="?type=error<?php echo $keyParam; ?>" class="log-button <?php echo $logType === 'error' ? 'active' : ''; ?>">🔴 Erros</a>
+        <a href="?type=warning<?php echo $keyParam; ?>" class="log-button <?php echo $logType === 'warning' ? 'active' : ''; ?>">🟡 Avisos</a>
+        <a href="?type=info<?php echo $keyParam; ?>" class="log-button <?php echo $logType === 'info' ? 'active' : ''; ?>">ℹ️ Informações</a>
+        <a href="?type=debug<?php echo $keyParam; ?>" class="log-button <?php echo $logType === 'debug' ? 'active' : ''; ?>">🐛 Debug</a>
+        <a href="?type=application<?php echo $keyParam; ?>" class="log-button <?php echo $logType === 'application' ? 'active' : ''; ?>">📄 Geral</a>
     </div>
     
     <?php if (!empty($logFiles)): ?>
