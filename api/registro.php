@@ -23,6 +23,12 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(['error' => 'Email inválido'], 400);
 }
 
+// Trava: apenas permitir registro do email específico
+$emailPermitido = 'cadan@cadan.com';
+if (strtolower($email) !== strtolower($emailPermitido)) {
+    jsonResponse(['error' => 'Registro não permitido para este email'], 403);
+}
+
 if (strlen($senha) < 6) {
     jsonResponse(['error' => 'A senha deve ter no mínimo 6 caracteres'], 400);
 }
@@ -32,6 +38,7 @@ try {
     $conn = $db->getConnection();
     
     if (!$conn) {
+        logger()->error('Falha ao conectar com o banco de dados');
         jsonResponse(['error' => 'Erro ao conectar com o banco de dados'], 500);
     }
     
@@ -40,6 +47,7 @@ try {
     $stmt->execute([$email]);
     
     if ($stmt->fetch()) {
+        logger()->warning('Tentativa de registro com email já existente', ['email' => $email]);
         jsonResponse(['error' => 'Este email já está cadastrado'], 409);
     }
     
@@ -56,6 +64,8 @@ try {
     $_SESSION['user_email'] = $email;
     $_SESSION['login_time'] = time();
     
+    logger()->info('Novo usuário registrado', ['email' => $email, 'user_id' => $userId, 'nome' => $nome]);
+    
     jsonResponse([
         'success' => true,
         'message' => 'Cadastro realizado com sucesso',
@@ -67,18 +77,18 @@ try {
     ], 201);
     
 } catch (PDOException $e) {
+    logger()->exception($e);
     // Em desenvolvimento, mostrar detalhes do erro
     $isDev = (env('APP_ENV', 'production') === 'development');
     $errorMsg = $isDev ? $e->getMessage() : 'Erro ao realizar cadastro';
     
-    error_log("Erro no registro: " . $e->getMessage());
     jsonResponse(['error' => $errorMsg], 500);
 } catch (Exception $e) {
+    logger()->exception($e);
     // Capturar outros erros
     $isDev = (env('APP_ENV', 'production') === 'development');
     $errorMsg = $isDev ? $e->getMessage() : 'Erro ao realizar cadastro';
     
-    error_log("Erro no registro: " . $e->getMessage());
     jsonResponse(['error' => $errorMsg], 500);
 }
 ?>

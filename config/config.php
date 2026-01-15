@@ -24,6 +24,9 @@ define('SESSION_TIMEOUT', env('SESSION_TIMEOUT', 3600)); // 1 hora em segundos
 // Incluir arquivo de banco de dados
 require_once __DIR__ . '/database.php';
 
+// Incluir sistema de log
+require_once __DIR__ . '/logger.php';
+
 // Funções auxiliares
 function isLoggedIn() {
     return isset($_SESSION['user_id']);

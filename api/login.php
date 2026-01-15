@@ -36,6 +36,8 @@ try {
         $_SESSION['user_email'] = $usuario['email'];
         $_SESSION['login_time'] = time();
         
+        logger()->info('Login bem-sucedido', ['email' => $email, 'user_id' => $usuario['id']]);
+        
         jsonResponse([
             'success' => true,
             'message' => 'Login realizado com sucesso',
@@ -46,9 +48,11 @@ try {
             ]
         ]);
     } else {
+        logger()->warning('Tentativa de login falhou', ['email' => $email]);
         jsonResponse(['error' => 'Email ou senha inválidos'], 401);
     }
 } catch (PDOException $e) {
+    logger()->exception($e);
     jsonResponse(['error' => 'Erro ao realizar login'], 500);
 }
 ?>
