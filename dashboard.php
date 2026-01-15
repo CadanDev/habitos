@@ -8,6 +8,7 @@ requireLogin();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Sistema de Hábitos</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✓</text></svg>">
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -186,7 +187,25 @@ requireLogin();
                         <label class="form-label">Configurações de áudio (opcional)</label>
                         <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
-                                <label class="form-label" for="habitoTTSVoz">Voz</label>
+                                <label class="form-label" for="habitoTTSProvider">Provider de áudio</label>
+                                <select id="habitoTTSProvider" class="form-input">
+                                    <option value="chrome">Chrome (Web Speech)</option>
+                                    <option value="gpt">OpenAI (GPT)</option>
+                                </select>
+                            </div>
+                            <div id="voiceOpenAIContainer" style="display: none;">
+                                <label class="form-label" for="habitoTTSVozOpenAI">Voz OpenAI</label>
+                                <select id="habitoTTSVozOpenAI" class="form-input">
+                                    <option value="alloy">Alloy</option>
+                                    <option value="echo">Echo</option>
+                                    <option value="fable">Fable</option>
+                                    <option value="onyx">Onyx</option>
+                                    <option value="nova" selected>Nova</option>
+                                    <option value="shimmer">Shimmer</option>
+                                </select>
+                            </div>
+                            <div id="voiceChromeContainer">
+                                <label class="form-label" for="habitoTTSVoz">Voz do navegador</label>
                                 <select id="habitoTTSVoz" class="form-input"></select>
                             </div>
                             <div>
@@ -197,7 +216,7 @@ requireLogin();
                                 <label class="form-label" for="habitoTTSRate">Velocidade</label>
                                 <input type="range" id="habitoTTSRate" class="form-input" min="0.5" max="1.5" step="0.1" value="1">
                             </div>
-                            <div>
+                            <div id="pitchContainer">
                                 <label class="form-label" for="habitoTTSPitch">Tom</label>
                                 <input type="range" id="habitoTTSPitch" class="form-input" min="0" max="2" step="0.1" value="1">
                             </div>
@@ -555,6 +574,22 @@ requireLogin();
                 const select = document.getElementById('habitoTTSVoz');
                 alerts.populateVoiceSelect(select);
             });
+            // Provider selector
+            const providerSelect = document.getElementById('habitoTTSProvider');
+            if (providerSelect) {
+                function updateVoiceFields() {
+                    const isOpenAI = providerSelect.value === 'gpt';
+                    document.getElementById('voiceOpenAIContainer').style.display = isOpenAI ? 'block' : 'none';
+                    document.getElementById('voiceChromeContainer').style.display = isOpenAI ? 'none' : 'block';
+                    document.getElementById('pitchContainer').style.display = isOpenAI ? 'none' : 'block';
+                }
+                providerSelect.addEventListener('change', (e) => {
+                    alerts.settings.tts_provider = e.target.value;
+                    updateVoiceFields();
+                    userPrefs.save({ tts_provider: alerts.settings.tts_provider });
+                });
+                updateVoiceFields();
+            }
             const select = document.getElementById('habitoTTSVoz');
             select.addEventListener('change', () => {
                 const voices = window.speechSynthesis.getVoices() || [];
@@ -562,6 +597,13 @@ requireLogin();
                 alerts.settings.voice = voices[idx] || null;
                 userPrefs.save({ tts_voice: alerts.settings.voice ? alerts.settings.voice.name : null });
             });
+            const voiceOpenAISelect = document.getElementById('habitoTTSVozOpenAI');
+            if (voiceOpenAISelect) {
+                voiceOpenAISelect.addEventListener('change', (e) => {
+                    alerts.settings.tts_voice = e.target.value;
+                    userPrefs.save({ tts_voice_openai: alerts.settings.tts_voice });
+                });
+            }
             document.getElementById('habitoTTSVolume').addEventListener('input', (e) => {
                 alerts.settings.volume = parseFloat(e.target.value);
                 userPrefs.save({ tts_volume: alerts.settings.volume });
@@ -570,10 +612,13 @@ requireLogin();
                 alerts.settings.rate = parseFloat(e.target.value);
                 userPrefs.save({ tts_rate: alerts.settings.rate });
             });
-            document.getElementById('habitoTTSPitch').addEventListener('input', (e) => {
-                alerts.settings.pitch = parseFloat(e.target.value);
-                userPrefs.save({ tts_pitch: alerts.settings.pitch });
-            });
+            const pitchEl = document.getElementById('habitoTTSPitch');
+            if (pitchEl) {
+                pitchEl.addEventListener('input', (e) => {
+                    alerts.settings.pitch = parseFloat(e.target.value);
+                    userPrefs.save({ tts_pitch: alerts.settings.pitch });
+                });
+            }
             document.getElementById('btnTestarAlerta').addEventListener('click', () => {
                 const msg = document.getElementById('habitoAlertaMensagem').value || 'Hora do seu hábito!';
                 alerts.speakMessage(msg);

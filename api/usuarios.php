@@ -1,7 +1,7 @@
 <?php
 require_once '../config/config.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, PUT');
 
 if (!isLoggedIn()) {
@@ -17,7 +17,7 @@ try {
 
     switch ($method) {
         case 'GET':
-            $stmt = $conn->prepare("SELECT id, nome, email, avatar, tema, tts_voice, tts_volume, tts_rate, tts_pitch FROM usuarios WHERE id = ?");
+            $stmt = $conn->prepare("SELECT id, nome, email, avatar, tema, tts_voice, tts_volume, tts_rate, tts_pitch, tts_provider, tts_voice_openai FROM usuarios WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch();
             if (!$user) {
@@ -31,9 +31,11 @@ try {
             $ttsVolume = isset($data['tts_volume']) ? floatval($data['tts_volume']) : null;
             $ttsRate = isset($data['tts_rate']) ? floatval($data['tts_rate']) : null;
             $ttsPitch = isset($data['tts_pitch']) ? floatval($data['tts_pitch']) : null;
+            $ttsProvider = sanitizeInput($data['tts_provider'] ?? 'chrome');
+            $ttsVoiceOpenAI = sanitizeInput($data['tts_voice_openai'] ?? 'nova');
 
-            $stmt = $conn->prepare("UPDATE usuarios SET tts_voice = ?, tts_volume = ?, tts_rate = ?, tts_pitch = ? WHERE id = ?");
-            $stmt->execute([$ttsVoice, $ttsVolume, $ttsRate, $ttsPitch, $userId]);
+            $stmt = $conn->prepare("UPDATE usuarios SET tts_voice = ?, tts_volume = ?, tts_rate = ?, tts_pitch = ?, tts_provider = ?, tts_voice_openai = ? WHERE id = ?");
+            $stmt->execute([$ttsVoice, $ttsVolume, $ttsRate, $ttsPitch, $ttsProvider, $ttsVoiceOpenAI, $userId]);
 
             jsonResponse(['success' => true, 'message' => 'Preferências atualizadas']);
             break;

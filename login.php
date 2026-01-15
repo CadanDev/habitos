@@ -7,6 +7,7 @@ require_once 'config/config.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema de Hábitos</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>✓</text></svg>">
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -55,13 +56,15 @@ require_once 'config/config.php';
     </script>
     <script src="assets/js/app.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const senha = document.getElementById('senha').value;
-            
-            await auth.login(email, senha);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const senha = document.getElementById('senha').value;
+                
+                await auth.login(email, senha);
+            });
         });
     </script>
 </body>

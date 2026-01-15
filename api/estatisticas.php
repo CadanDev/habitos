@@ -1,7 +1,7 @@
 <?php
 require_once '../config/config.php';
 
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 if (!isLoggedIn()) {
     jsonResponse(['error' => 'Não autenticado'], 401);

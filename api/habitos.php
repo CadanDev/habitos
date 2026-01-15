@@ -1,8 +1,7 @@
 <?php
-require_once '../config/config.php';
-
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+require_once '../config/config.php';
 
 if (!isLoggedIn()) {
     jsonResponse(['error' => 'N�o autenticado'], 401);
@@ -22,16 +21,17 @@ try {
                   SELECT h.*, 
                        COUNT(DISTINCT r.id) as total_registros,
                        COUNT(DISTINCT CASE WHEN r.data >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN r.id END) as registros_semana,
+                       a.id AS alerta_id,
                        a.ativo AS alerta_ativo,
                        a.tipo AS alerta_tipo,
                        a.hora AS alerta_hora,
                        a.dias AS alerta_dias,
                        a.intervalo_minutos AS alerta_intervalo_minutos,
-                      a.descanso_segundos AS alerta_descanso_segundos,
-                      a.mensagem_alerta AS alerta_mensagem,
-                      a.mensagem_descanso AS alerta_mensagem_descanso,
-                      a.mensagem_fim_descanso AS alerta_mensagem_fim_descanso,
-                      a.estado_atual AS alerta_estado_atual
+                       a.descanso_segundos AS alerta_descanso_segundos,
+                       a.mensagem_alerta AS alerta_mensagem,
+                       a.mensagem_descanso AS alerta_mensagem_descanso,
+                       a.mensagem_fim_descanso AS alerta_mensagem_fim_descanso,
+                       a.descanso_requer_trigger AS alerta_descanso_requer_trigger
                 FROM habitos h
                 LEFT JOIN registros r ON h.id = r.habito_id AND r.concluido = 1
                 LEFT JOIN alertas a ON a.habito_id = h.id
@@ -189,7 +189,8 @@ try {
             jsonResponse(['error' => 'M�todo n�o suportado'], 405);
     }
     
-} catch (PDOException $e) {
-    jsonResponse(['error' => 'Erro ao processar solicita��o'], 500);
+} catch (Exception $e) {
+    logger('ERROR', 'API Hábitos - ' . $e->getMessage());
+    jsonResponse(['error' => 'Erro ao processar solicitação: ' . ($e->getMessage())], 500);
 }
 ?>

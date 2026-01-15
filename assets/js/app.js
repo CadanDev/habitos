@@ -470,22 +470,89 @@ const alerts = {
         // TTS com configurações
         this.speakMessage(body);
     },
-        this.speakMessage(body);
-    },
     speakMessage(text) {
         try {
-            if (!('speechSynthesis' in window)) return;
+            // Validar texto
+            if (!text || text.trim().length === 0) {
+                console.warn('speakMessage: Texto vazio fornecido');
+                return;
+            }
+
+            const s = this.settings;
+            
+            // Se provider é OpenAI, usar API
+            if (s.tts_provider === 'gpt' || s.tts_provider === 'openai') {
+                this.speakViaOpenAI(text);
+            } else {
+                // Fallback para Web Speech API
+                this.speakViaWebSpeechAPI(text);
+            }
+        } catch (e) {
+            console.error('Erro ao falar:', e);
+            // Fallback para Web Speech API em caso de erro
+            this.speakViaWebSpeechAPI(text);
+        }
+    },
+    speakViaOpenAI(text) {
+        // Validação
+        if (!text || text.trim().length === 0) {
+            console.error('OpenAI TTS: Texto não fornecido');
+            return Promise.reject('Texto não fornecido');
+        }
+
+        const s = this.settings;
+        return fetch('api/tts.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: text.trim(),
+                voice: s.tts_voice || 'nova',
+                speed: s.rate || 1.0
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Erro ao gerar áudio');
+                });
+            }
+            return response.arrayBuffer();
+        })
+        .then(arrayBuffer => {
+            const audio = new Audio();
+            audio.src = URL.createObjectURL(new Blob([arrayBuffer], { type: 'audio/mpeg' }));
+            audio.volume = s.volume || 1;
+            audio.play().catch(e => {
+                console.warn('Erro ao reproduzir áudio OpenAI:', e);
+                this.speakViaWebSpeechAPI(text);
+            });
+        })
+        .catch(error => {
+            console.warn('Erro com OpenAI TTS, usando Web Speech API:', error);
+            this.speakViaWebSpeechAPI(text);
+        });
+    },
+    speakViaWebSpeechAPI(text) {
+        try {
+            if (!('speechSynthesis' in window)) {
+                console.error('Web Speech API não disponível');
+                return;
+            }
             const utter = new SpeechSynthesisUtterance(text);
             // aplicar configurações
             const s = this.settings;
             utter.lang = (s.voice && s.voice.lang) ? s.voice.lang : 'pt-BR';
-            utter.rate = s.rate;
-            utter.pitch = s.pitch;
-            utter.volume = s.volume;
+            utter.rate = s.rate || 1;
+            utter.pitch = s.pitch || 1;
+            utter.volume = s.volume || 1;
             if (s.voice) utter.voice = s.voice;
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(utter);
-        } catch (e) {}
+        } catch (e) {
+            console.error('Erro ao falar via Web Speech API:', e);
+        }
     },
     scheduleByDay(h) {
         // dias: "1,3,5" (Seg=1 ... Dom=0), hora: "HH:MM"
@@ -661,14 +728,30 @@ const userPrefs = {
                 const u = data.user;
                 if (window.alerts) {
                     // aplicar TTS
+                    alerts.settings.tts_provider = u.tts_provider || 'chrome';
                     alerts.settings.rate = parseFloat(u.tts_rate ?? alerts.settings.rate);
                     alerts.settings.pitch = parseFloat(u.tts_pitch ?? alerts.settings.pitch);
                     alerts.settings.volume = parseFloat(u.tts_volume ?? alerts.settings.volume);
+                    alerts.settings.tts_voice = u.tts_voice_openai || 'nova';
                     // voz será definida após carregar voices; armazenamos o nome
                     alerts.settings.voiceName = u.tts_voice || null;
                     alerts.initVoices((voices) => {
                         const select = document.getElementById('habitoTTSVoz');
+                        const providerSelect = document.getElementById('habitoTTSProvider');
+                        const voiceOpenAISelect = document.getElementById('habitoTTSVozOpenAI');
                         alerts.populateVoiceSelect(select);
+                        if (providerSelect) {
+                            providerSelect.value = alerts.settings.tts_provider;
+                            // Atualizar visibilidade dos campos
+                            const isOpenAI = alerts.settings.tts_provider === 'gpt';
+                            const voiceOpenAIContainer = document.getElementById('voiceOpenAIContainer');
+                            const voiceChromeContainer = document.getElementById('voiceChromeContainer');
+                            const pitchContainer = document.getElementById('pitchContainer');
+                            if (voiceOpenAIContainer) voiceOpenAIContainer.style.display = isOpenAI ? 'block' : 'none';
+                            if (voiceChromeContainer) voiceChromeContainer.style.display = isOpenAI ? 'none' : 'block';
+                            if (pitchContainer) pitchContainer.style.display = isOpenAI ? 'none' : 'block';
+                        }
+                        if (voiceOpenAISelect) voiceOpenAISelect.value = alerts.settings.tts_voice || 'nova';
                         if (alerts.settings.voiceName) {
                             const matchIndex = voices.findIndex(v => v.name === alerts.settings.voiceName);
                             if (matchIndex >= 0) {
@@ -693,7 +776,9 @@ const userPrefs = {
     async save(partial) {
         try {
             const payload = {
+                tts_provider: partial.tts_provider ?? alerts.settings.tts_provider ?? 'chrome',
                 tts_voice: partial.tts_voice ?? (alerts.settings.voice ? alerts.settings.voice.name : null),
+                tts_voice_openai: partial.tts_voice_openai ?? alerts.settings.tts_voice ?? 'nova',
                 tts_volume: partial.tts_volume ?? alerts.settings.volume,
                 tts_rate: partial.tts_rate ?? alerts.settings.rate,
                 tts_pitch: partial.tts_pitch ?? alerts.settings.pitch
