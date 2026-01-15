@@ -47,6 +47,12 @@ require_once 'config/config.php';
             <div class="auth-link">
                 Não tem uma conta? <a href="registro.php">Criar conta</a>
             </div>
+
+            <div class="auth-link" style="font-size: 13px; color: var(--gray-500);">
+                <a href="politica-privacidade.php">Política de Privacidade</a> ·
+                <a href="termos-uso.php">Termos de Uso</a> ·
+                <a href="contato.php">Contato</a>
+            </div>
         </div>
     </div>
     
