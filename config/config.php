@@ -7,8 +7,20 @@
 require_once __DIR__ . '/env.php';
 loadEnv();
 
-// Iniciar sessão
+// Iniciar sessão com cookie protegido por HttpOnly
 if (session_status() === PHP_SESSION_NONE) {
+    $cookieParams = session_get_cookie_params();
+    $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+
+    session_set_cookie_params([
+        'lifetime' => $cookieParams['lifetime'],
+        'path' => $cookieParams['path'] ?? '/',
+        'domain' => $cookieParams['domain'] ?? '',
+        'secure' => $isHttps,
+        'httponly' => true,
+        'samesite' => $cookieParams['samesite'] ?? 'Lax',
+    ]);
+
     session_start();
 }
 

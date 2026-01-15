@@ -1,11 +1,9 @@
 <?php
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/logger.php';
+require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../app/Enums/TipoManutencao.php';
 
 header('Content-Type: application/json');
-session_start();
 
 // Verificar autenticação
 if (!isset($_SESSION['usuario_id'])) {
